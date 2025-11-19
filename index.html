@@ -845,8 +845,9 @@ async function loadProducts() {
                 desc.includes(keyword) || category.includes(keyword)
             );
             
-            // Solo incluir productos con descripción válida
-            return !shouldExclude && desc.trim().length > 0;
+            // Solo incluir productos con descripción válida Y que tengan imagen
+            const hasImage = product.has_image && product.image_path;
+            return !shouldExclude && desc.trim().length > 0 && hasImage;
         });
         
         // Extraer categorías únicas
@@ -1001,7 +1002,10 @@ function filterProducts() {
         const matchesFeatured = !selectedFeatured || 
             (selectedFeatured === 'yes' && featured);
         
-        return matchesSearch && matchesCategory && matchesStock && matchesFeatured;
+        // Solo mostrar productos con imagen
+        const hasImage = product.has_image && product.image_path;
+        
+        return matchesSearch && matchesCategory && matchesStock && matchesFeatured && hasImage;
     });
     
     renderProducts();
