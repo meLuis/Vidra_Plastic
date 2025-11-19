@@ -1,0 +1,35 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales
+*.tmp
+*.log
+*.swp
+*~
+
+# Archivos de Python (por si acaso)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Archivos de Node (por si acaso)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos de Excel originales (si quieres mantenerlos privados)
+# *.xlsx
+
+# Archivos de desarrollo
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
