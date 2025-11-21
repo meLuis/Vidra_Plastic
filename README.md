@@ -1,41 +1,124 @@
-# VidraPlastic - Tienda en Línea
+# VidraPlastic - Tienda en Línea 🛒
 
 Tienda en línea moderna para VidraPlastic, empresa peruana especializada en envases de vidrio y plástico.
 
-## 🚀 Características
+## 🚀 Características Principales
 
-- 🎨 Diseño moderno y responsive
-- 🔍 Búsqueda de productos en tiempo real
-- 🏷️ Filtros por categoría, stock y productos destacados
-- 📱 Completamente responsive (móvil, tablet, desktop)
-- 🖼️ Visualización de productos con imágenes
-- 💰 Información de precios y stock
-- 🎯 Modal detallado para cada producto
+### 🎨 Diseño y UX
+- ✅ Diseño moderno y profesional
+- ✅ Completamente responsive (móvil, tablet, desktop)
+- ✅ Grid de 5 columnas en desktop, 3 en tablet, 2 en móvil
+- ✅ Animaciones suaves y transiciones elegantes
+
+### 🔍 Sistema de Búsqueda y Filtros
+- ✅ Búsqueda en tiempo real por nombre, código o categoría
+- ✅ Filtros avanzados: categoría, stock, destacados
+- ✅ Contador de productos filtrados
+
+### 📦 Paginación Inteligente
+- ✅ Muestra 50 productos inicialmente (10 filas × 5 columnas)
+- ✅ Botón "Ver más" carga 50 productos adicionales
+- ✅ Carga infinita sin recargar página
+
+### 🛒 Sistema de Carrito Completo
+- ✅ Botón de agregar en cada producto (esquina superior derecha)
+- ✅ Panel lateral deslizable desde la derecha
+- ✅ Badge con contador de items en el header
+- ✅ Control de cantidad (+/- o input manual)
+- ✅ Botón eliminar individual por producto
+- ✅ Botón "Vaciar carrito" completo
+- ✅ Cálculo automático de totales
+- ✅ Persistencia con localStorage (no se pierde al recargar)
+
+### 💬 Integración WhatsApp
+- ✅ Envío de pedido formateado a +51 989394769
+- ✅ Mensaje detallado con:
+  - Lista numerada de productos
+  - Códigos internos
+  - Cantidades y precios unitarios
+  - Subtotales por producto
+  - **Total general**
+- ✅ Compatible con WhatsApp Web y App móvil
+
+### 🖼️ Gestión de Productos
+- ✅ 194 productos con imágenes .webp optimizadas
+- ✅ Modal detallado para cada producto
+- ✅ Visualización de precios en soles
+- ✅ Sistema de productos destacados
+- ✅ Placeholder SVG para productos sin imagen
 
 ## 📦 Estructura del Proyecto
 
 ```
 VidraPlastic/
-├── index_standalone.html  # Archivo principal (todo embebido)
-└── Todos/                 # Carpeta con imágenes de productos
+├── index.html         # Página principal
+├── styles.css         # Estilos (CSS Grid, Flexbox, Variables)
+├── script.js          # Lógica del carrito y filtros
+├── README.md          # Este archivo
+└── Todos/             # Imágenes de productos (194 .webp)
 ```
 
-## 🎯 Cómo usar
+## 🎯 Cómo Usar
 
-Simplemente abre `index_standalone.html` en tu navegador. Este archivo contiene todos los datos embebidos y funciona sin necesidad de servidor.
+### Opción 1: Servidor Local Python
+```powershell
+cd C:\Users\Luis\Desktop\VidraPlastic
+python -m http.server 8000
+```
+Luego abre: http://localhost:8000
+
+### Opción 2: Live Server (VS Code)
+1. Instala la extensión "Live Server"
+2. Click derecho en `index.html` → "Open with Live Server"
+
+### Opción 3: Directamente en el navegador
+Abre `index.html` con tu navegador favorito
 
 ## 🛠️ Tecnologías
 
-- HTML5
-- CSS3 (con variables CSS y Grid/Flexbox)
-- JavaScript vanilla (sin dependencias)
-- Diseño responsive
+- **HTML5** - Estructura semántica
+- **CSS3** - Variables CSS, Grid, Flexbox, Animaciones
+- **JavaScript ES6+** - Vanilla JS, sin dependencias
+- **LocalStorage API** - Persistencia del carrito
+- **WhatsApp Business API** - Envío de pedidos
+
+## 📱 Responsive Breakpoints
+
+- **Desktop** (>1200px): 5 columnas
+- **Laptop** (992-1200px): 4 columnas
+- **Tablet** (768-992px): 3 columnas
+- **Móvil** (480-768px): 2 columnas
+- **Móvil pequeño** (<480px): 2 columnas compactas
+
+## 🎨 Paleta de Colores
+
+```css
+--primary-color: #2563eb    /* Azul principal */
+--primary-dark: #1e40af     /* Azul oscuro */
+--secondary-color: #10b981  /* Verde éxito */
+--text-dark: #1f2937        /* Texto principal */
+--text-light: #6b7280       /* Texto secundario */
+```
+
+## 🚀 Roadmap Futuro
+
+- [ ] Sistema de autenticación
+- [ ] Panel de administración
+- [ ] Gestión de inventario en tiempo real
+- [ ] Múltiples métodos de pago
+- [ ] Sistema de descuentos y cupones
+- [ ] Historial de pedidos
+- [ ] Notificaciones push
+- [ ] PWA (Progressive Web App)
+- [ ] Modo oscuro
 
 ## 📄 Licencia
 
-© 2024 VidraPlastic. Todos los derechos reservados.
+© 2025 VidraPlastic. Todos los derechos reservados.
 
 ---
 
 **VidraPlastic** - Envases a tu medida 🇵🇪
+
+**Contacto:** +51 989 394 769
 

@@ -2,6 +2,9 @@
 let allProducts = [];
 let filteredProducts = [];
 let categories = new Set();
+let cart = [];
+let displayedProductsCount = 60; // Mostrar 60 productos inicialmente (10 filas x 6 cols)
+const PRODUCTS_PER_PAGE = 60;
 
 // Elementos del DOM
 const productsGrid = document.getElementById('productsGrid');
@@ -16,6 +19,18 @@ const productCount = document.getElementById('productCount');
 const productModal = document.getElementById('productModal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
+
+// Cart elements
+const cartIcon = document.getElementById('cartIcon');
+const cartBadge = document.getElementById('cartBadge');
+const cartPanel = document.getElementById('cartPanel');
+const cartOverlay = document.getElementById('cartOverlay');
+const cartClose = document.getElementById('cartClose');
+const cartBody = document.getElementById('cartBody');
+const cartFooter = document.getElementById('cartFooter');
+const cartTotal = document.getElementById('cartTotal');
+const sendWhatsAppBtn = document.getElementById('sendWhatsApp');
+const clearCartBtn = document.getElementById('clearCart');
 
 // Cargar productos
 async function loadProducts() {
@@ -99,11 +114,16 @@ function renderProducts() {
     if (filteredProducts.length === 0) {
         productsGrid.innerHTML = '';
         noResults.style.display = 'block';
+        updateLoadMoreButton();
         return;
     }
     
     noResults.style.display = 'none';
-    productsGrid.innerHTML = filteredProducts.map(product => {
+    
+    // Mostrar solo los primeros displayedProductsCount productos
+    const productsToShow = filteredProducts.slice(0, displayedProductsCount);
+    
+    productsGrid.innerHTML = productsToShow.map(product => {
         const code = product.code || product['CODIGO INTERNO'] || '';
         const name = product['DESCRIPCIÓN'] || 'Sin nombre';
         const category = product['DESCRIPCIÓN DE CATEGORÍA'] || 'SIN CATEGORÍA';
@@ -115,9 +135,16 @@ function renderProducts() {
         const stockInfo = formatStock(stock);
         
         return `
-            <div class="product-card" onclick="openProductModal('${code}')">
+            <div class="product-card">
+                <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${code}')" title="Agregar al carrito">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                </button>
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
-                <div class="product-image-container">
+                <div class="product-image-container" onclick="openProductModal('${code}')">
                     ${hasImage 
                         ? `<img src="${product.image_path}" alt="${name}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                            <div class="product-image-placeholder" style="display:none;">
@@ -136,24 +163,58 @@ function renderProducts() {
                            </div>`
                     }
                 </div>
-                <div class="product-info">
+                <div class="product-info" onclick="openProductModal('${code}')">
                     <div class="product-code">Código: ${code}</div>
                     <h3 class="product-name">${name}</h3>
                     <div class="product-category">${category}</div>
                     <div class="product-footer">
                         <div class="product-price">${formatPrice(price, currency)}</div>
-                        <div class="product-stock ${stockInfo.class}">${stockInfo.text}</div>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
+    
+    updateLoadMoreButton();
+}
+
+// Actualizar botón "Ver más"
+function updateLoadMoreButton() {
+    let loadMoreContainer = document.getElementById('loadMoreContainer');
+    
+    // Si no existe, crear el contenedor
+    if (!loadMoreContainer) {
+        loadMoreContainer = document.createElement('div');
+        loadMoreContainer.id = 'loadMoreContainer';
+        loadMoreContainer.className = 'load-more-container';
+        productsGrid.parentElement.appendChild(loadMoreContainer);
+    }
+    
+    // Mostrar u ocultar según haya más productos
+    if (displayedProductsCount < filteredProducts.length) {
+        const remaining = filteredProducts.length - displayedProductsCount;
+        loadMoreContainer.innerHTML = `
+            <button class="btn-load-more" onclick="loadMoreProducts()">
+                Ver más (${remaining} productos restantes)
+            </button>
+        `;
+        loadMoreContainer.style.display = 'block';
+    } else {
+        loadMoreContainer.style.display = 'none';
+    }
+}
+
+// Cargar más productos
+function loadMoreProducts() {
+    displayedProductsCount += PRODUCTS_PER_PAGE;
+    renderProducts();
 }
 
 // Actualizar contador de productos
 function updateProductCount() {
     const count = filteredProducts.length;
-    productCount.textContent = `${count} producto${count !== 1 ? 's' : ''} encontrado${count !== 1 ? 's' : ''}`;
+    const showing = Math.min(displayedProductsCount, filteredProducts.length);
+    productCount.textContent = `Mostrando ${showing} de ${count} producto${count !== 1 ? 's' : ''}`;
 }
 
 // Filtrar productos
@@ -162,6 +223,9 @@ function filterProducts() {
     const selectedCategory = categoryFilter.value;
     const selectedStock = stockFilter.value;
     const selectedFeatured = featuredFilter.value;
+    
+    // Reset al filtrar
+    displayedProductsCount = PRODUCTS_PER_PAGE;
     
     filteredProducts = allProducts.filter(product => {
         // Búsqueda por texto
@@ -324,5 +388,226 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
+// ========== CARRITO DE COMPRAS ==========
+
+// Cargar carrito desde localStorage
+function loadCart() {
+    const savedCart = localStorage.getItem('vidraPlasticCart');
+    if (savedCart) {
+        cart = JSON.parse(savedCart);
+        updateCartUI();
+    }
+}
+
+// Guardar carrito en localStorage
+function saveCart() {
+    localStorage.setItem('vidraPlasticCart', JSON.stringify(cart));
+}
+
+// Agregar producto al carrito
+function addToCart(productCode) {
+    const product = allProducts.find(p => 
+        (p.code || p['CODIGO INTERNO'] || '').toString() === productCode.toString()
+    );
+    
+    if (!product) return;
+    
+    // Verificar si el producto ya está en el carrito
+    const existingItem = cart.find(item => item.code === productCode);
+    
+    if (existingItem) {
+        // Si ya existe, aumentar cantidad
+        existingItem.quantity += 1;
+    } else {
+        // Si no existe, agregar nuevo
+        const name = product['DESCRIPCIÓN'] || 'Sin nombre';
+        const price = product['PRECIO VENTA UNITARIO (CON IGV)'] || product['PRECIO COMPRA UNITARIO (CON IGV)'] || 0;
+        const currency = product['MONEDA (1=SOLES, 2=DOLARES, 3=EURO)'] || 1;
+        const hasImage = product.has_image && product.image_path;
+        
+        cart.push({
+            code: productCode,
+            name: name,
+            price: price,
+            currency: currency,
+            quantity: 1,
+            imagePath: hasImage ? product.image_path : null
+        });
+    }
+    
+    saveCart();
+    updateCartUI();
+    showCartNotification();
+}
+
+// Mostrar notificación visual (breve animación)
+function showCartNotification() {
+    cartBadge.style.transform = 'scale(1.3)';
+    setTimeout(() => {
+        cartBadge.style.transform = 'scale(1)';
+    }, 200);
+}
+
+// Actualizar cantidad de un producto
+function updateCartItemQuantity(productCode, newQuantity) {
+    const item = cart.find(item => item.code === productCode);
+    
+    if (!item) return;
+    
+    if (newQuantity < 1) {
+        removeFromCart(productCode);
+        return;
+    }
+    
+    item.quantity = newQuantity;
+    saveCart();
+    updateCartUI();
+}
+
+// Eliminar producto del carrito
+function removeFromCart(productCode) {
+    cart = cart.filter(item => item.code !== productCode);
+    saveCart();
+    updateCartUI();
+}
+
+// Vaciar carrito completo
+function clearCart() {
+    if (cart.length === 0) return;
+    
+    if (confirm('¿Estás seguro de que deseas vaciar el carrito?')) {
+        cart = [];
+        saveCart();
+        updateCartUI();
+    }
+}
+
+// Actualizar UI del carrito
+function updateCartUI() {
+    // Actualizar badge
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (totalItems > 0) {
+        cartBadge.textContent = totalItems;
+        cartBadge.style.display = 'flex';
+    } else {
+        cartBadge.style.display = 'none';
+    }
+    
+    // Actualizar contenido del panel
+    if (cart.length === 0) {
+        cartBody.innerHTML = `
+            <div class="cart-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <h3>Tu carrito está vacío</h3>
+                <p>Agrega productos para comenzar</p>
+            </div>
+        `;
+        cartFooter.style.display = 'none';
+    } else {
+        cartBody.innerHTML = cart.map(item => `
+            <div class="cart-item">
+                <div class="cart-item-image">
+                    ${item.imagePath 
+                        ? `<img src="${item.imagePath}" alt="${item.name}">`
+                        : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                               <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                               <polyline points="21 15 16 10 5 21"></polyline>
+                           </svg>`
+                    }
+                </div>
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.name}</div>
+                    <div class="cart-item-code">Código: ${item.code}</div>
+                    <div class="cart-item-price">${formatPrice(item.price, item.currency)}</div>
+                    <div class="cart-item-controls">
+                        <div class="quantity-control">
+                            <button class="quantity-btn" onclick="updateCartItemQuantity('${item.code}', ${item.quantity - 1})">−</button>
+                            <input type="number" class="quantity-input" value="${item.quantity}" min="1" 
+                                onchange="updateCartItemQuantity('${item.code}', parseInt(this.value) || 1)">
+                            <button class="quantity-btn" onclick="updateCartItemQuantity('${item.code}', ${item.quantity + 1})">+</button>
+                        </div>
+                        <button class="remove-item-btn" onclick="removeFromCart('${item.code}')" title="Eliminar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Calcular y mostrar total
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        cartTotal.textContent = `S/ ${total.toFixed(2)}`;
+        cartFooter.style.display = 'block';
+    }
+}
+
+// Abrir panel del carrito
+function openCart() {
+    cartPanel.classList.add('open');
+    cartOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+// Cerrar panel del carrito
+function closeCart() {
+    cartPanel.classList.remove('open');
+    cartOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Enviar pedido por WhatsApp
+function sendWhatsAppOrder() {
+    if (cart.length === 0) {
+        alert('El carrito está vacío');
+        return;
+    }
+    
+    // Construir mensaje
+    let message = '¡Hola! Quiero hacer un pedido:\n\n';
+    
+    cart.forEach((item, index) => {
+        const subtotal = item.price * item.quantity;
+        message += `${index + 1}. ${item.name}\n`;
+        message += `   Código: ${item.code}\n`;
+        message += `   Cantidad: ${item.quantity}x - ${formatPrice(item.price, item.currency)}\n`;
+        message += `   Subtotal: ${formatPrice(subtotal, item.currency)}\n\n`;
+    });
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    message += `*Total: S/ ${total.toFixed(2)}*`;
+    
+    // Codificar mensaje para URL
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappNumber = '51989394769';
+    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    
+    // Abrir WhatsApp
+    window.open(whatsappURL, '_blank');
+}
+
+// Event listeners del carrito
+cartIcon.addEventListener('click', openCart);
+cartClose.addEventListener('click', closeCart);
+cartOverlay.addEventListener('click', closeCart);
+sendWhatsAppBtn.addEventListener('click', sendWhatsAppOrder);
+clearCartBtn.addEventListener('click', clearCart);
+
+// Cerrar carrito con ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && cartPanel.classList.contains('open')) {
+        closeCart();
+    }
+});
+
 // Inicializar
+loadCart();
 loadProducts();
