@@ -126,13 +126,16 @@ function renderProducts() {
     productsGrid.innerHTML = productsToShow.map(product => {
         const code = product.code || product['CODIGO INTERNO'] || '';
         const name = product['DESCRIPCIÓN'] || 'Sin nombre';
-        const category = product['DESCRIPCIÓN DE CATEGORÍA'] || 'SIN CATEGORÍA';
-        const price = product['PRECIO VENTA UNITARIO (CON IGV)'] || product['PRECIO COMPRA UNITARIO (CON IGV)'];
+        const category = product['DESCRIPCIÓN DE CATEGORÍA'] || '';
+        const price = product['PRECIO VENTA UNITARIO (CON IGV)'];
         const currency = product['MONEDA (1=SOLES, 2=DOLARES, 3=EURO)'] || 1;
         const stock = product['STOCK ACTUAL DISPONIBLE'] || 0;
         const featured = product['DESTACADO'] === 'SI' || product['DESTACADO'] === 'SÍ';
         const hasImage = product.has_image && product.image_path;
-        const stockInfo = formatStock(stock);
+        
+        // Obtener cantidad en carrito para este producto
+        const cartItem = cart.find(item => item.code === code);
+        const cartQuantity = cartItem ? cartItem.quantity : 0;
         
         return `
             <div class="product-card">
@@ -143,6 +146,7 @@ function renderProducts() {
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                     </svg>
                 </button>
+                ${cartQuantity > 0 ? `<span class="product-quantity-badge">${cartQuantity}</span>` : ''}
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <div class="product-image-container" onclick="openProductModal('${code}')">
                     ${hasImage 
@@ -166,9 +170,8 @@ function renderProducts() {
                 <div class="product-info" onclick="openProductModal('${code}')">
                     <div class="product-code">Código: ${code}</div>
                     <h3 class="product-name">${name}</h3>
-                    <div class="product-category">${category}</div>
                     <div class="product-footer">
-                        <div class="product-price">${formatPrice(price, currency)}</div>
+                        <div class="product-price">${price ? formatPrice(price, currency) : 'Consultar'}</div>
                     </div>
                 </div>
             </div>
@@ -309,7 +312,6 @@ function openProductModal(code) {
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <h2>${name}</h2>
                 <div class="product-code">Código: ${code}</div>
-                <div class="product-category">${category}</div>
                 <div class="modal-price">${formatPrice(price, currency)}</div>
                 <div class="modal-details">
                     <div class="detail-row">
@@ -320,18 +322,6 @@ function openProductModal(code) {
                         <span class="detail-label">Unidad de medida:</span>
                         <span class="detail-value">${unit}</span>
                     </div>
-                    ${product['PRECIO COMPRA UNITARIO (CON IGV)'] ? `
-                    <div class="detail-row">
-                        <span class="detail-label">Precio compra:</span>
-                        <span class="detail-value">${formatPrice(product['PRECIO COMPRA UNITARIO (CON IGV)'], currency)}</span>
-                    </div>
-                    ` : ''}
-                    ${product['VALOR VENTA UNITARIO (SIN IGV)'] ? `
-                    <div class="detail-row">
-                        <span class="detail-label">Valor venta (sin IGV):</span>
-                        <span class="detail-value">${formatPrice(product['VALOR VENTA UNITARIO (SIN IGV)'], currency)}</span>
-                    </div>
-                    ` : ''}
                 </div>
             </div>
         </div>
@@ -482,6 +472,46 @@ function clearCart() {
     }
 }
 
+// Actualizar badges individuales en las tarjetas de productos
+function updateProductBadges() {
+    // Recorrer todas las tarjetas de productos visibles
+    const productCards = document.querySelectorAll('.product-card');
+    
+    productCards.forEach(card => {
+        // Obtener el código del producto desde el botón de agregar
+        const addBtn = card.querySelector('.add-to-cart-btn');
+        if (!addBtn) return;
+        
+        const onclickAttr = addBtn.getAttribute('onclick');
+        const codeMatch = onclickAttr.match(/addToCart\('(.+?)'\)/);
+        if (!codeMatch) return;
+        
+        const productCode = codeMatch[1];
+        
+        // Buscar si este producto está en el carrito
+        const cartItem = cart.find(item => item.code === productCode);
+        const quantity = cartItem ? cartItem.quantity : 0;
+        
+        // Buscar o crear el badge
+        let badge = card.querySelector('.product-quantity-badge');
+        
+        if (quantity > 0) {
+            if (!badge) {
+                // Crear el badge si no existe
+                badge = document.createElement('span');
+                badge.className = 'product-quantity-badge';
+                card.appendChild(badge);
+            }
+            badge.textContent = quantity;
+        } else {
+            // Eliminar el badge si la cantidad es 0
+            if (badge) {
+                badge.remove();
+            }
+        }
+    });
+}
+
 // Actualizar UI del carrito
 function updateCartUI() {
     // Actualizar badge
@@ -493,6 +523,9 @@ function updateCartUI() {
     } else {
         cartBadge.style.display = 'none';
     }
+    
+    // Actualizar badges individuales sin re-renderizar todo
+    updateProductBadges();
     
     // Actualizar contenido del panel
     if (cart.length === 0) {
