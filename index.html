@@ -20,7 +20,12 @@
                     <h1 class="logo">VidraPlastic</h1>
                     <p class="tagline">Envases a tu medida</p>
                 </div>
-                <nav class="nav">
+                <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <nav class="nav" id="mainNav">
                     <a href="#inicio" class="nav-link active">Inicio</a>
                     <a href="#productos" class="nav-link">Productos</a>
                     <a href="#categorias" class="nav-link">Categorías</a>
@@ -184,6 +189,9 @@
             </div>
         </div>
     </footer>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
 
         <script src="script.js"></script>
 
