@@ -73,14 +73,6 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="stockFilter" class="filter-label">Stock:</label>
-                    <select id="stockFilter" class="filter-select">
-                        <option value="">Todos</option>
-                        <option value="available">Con stock</option>
-                        <option value="out">Sin stock</option>
-                    </select>
-                </div>
-                <div class="filter-group">
                     <label for="featuredFilter" class="filter-label">Destacados:</label>
                     <select id="featuredFilter" class="filter-select">
                         <option value="">Todos</option>
@@ -193,7 +185,10 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-        <script src="script.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
 
 </body>
 </html>
