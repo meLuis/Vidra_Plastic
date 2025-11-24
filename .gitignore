@@ -33,6 +33,4 @@ yarn-error.log
 *.sublime-project
 *.sublime-workspace
 
-# Configuración de Supabase (credenciales)
-supabase-config.js
 
