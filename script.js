@@ -593,8 +593,18 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ========== TOAST NOTIFICATIONS ==========
-function showToast(message, type = 'success', duration = 3000) {
+let activeToastTimeout = null;
+let activeToast = null;
+
+function showToast(message, type = 'success', duration = 2250) {
     const toastContainer = document.getElementById('toastContainer');
+    
+    // Si ya hay un toast activo, removerlo inmediatamente
+    if (activeToast) {
+        clearTimeout(activeToastTimeout);
+        activeToast.remove();
+        activeToast = null;
+    }
     
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -611,11 +621,15 @@ function showToast(message, type = 'success', duration = 3000) {
     `;
     
     toastContainer.appendChild(toast);
+    activeToast = toast;
     
     // Auto remove after duration
-    setTimeout(() => {
+    activeToastTimeout = setTimeout(() => {
         toast.classList.add('removing');
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => {
+            toast.remove();
+            if (activeToast === toast) activeToast = null;
+        }, 300);
     }, duration);
 }
 

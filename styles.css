@@ -368,6 +368,10 @@ body {
     border: 2px solid white;
     z-index: 10;
     box-shadow: var(--shadow-md);
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .add-to-cart-btn {
