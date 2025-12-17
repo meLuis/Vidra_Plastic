@@ -48,17 +48,11 @@ async function loadProducts() {
             throw error;
         }
         
-        // Usar datos directamente de Supabase
+        // ProductosPublicos solo devuelve productos con IMAGEN=true, así que no necesitamos validar
         allProducts = (data || []).map(product => ({
             ...product,
-            has_image: product.IMAGEN === true || product.IMAGEN === 'True' || product.IMAGEN === 'true',
-            image_path: (product.IMAGEN === true || product.IMAGEN === 'True' || product.IMAGEN === 'true') ? `Todos/${product.SKU}.webp` : null
+            image_path: `Todos/${product.SKU}.webp`
         }));
-        
-        // Filtrar solo productos con imagen
-        allProducts = allProducts.filter(product => 
-            product.has_image && product.image_path && product.DESCRIPCIÓN?.trim().length > 0
-        );
         
         // Extraer categorías únicas
         allProducts.forEach(product => {
@@ -129,7 +123,7 @@ function renderProducts() {
         const category = product.CATEGORÍA || '';
         const price = product.VENTA;
         const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
-        const hasImage = product.has_image && product.image_path;
+        const hasImage = product.image_path; // Siempre true porque la BD garantiza imagen
         
         // Obtener cantidad en carrito para este producto
         const cartItem = cart.find(item => item.code === code);
@@ -215,10 +209,8 @@ function filterProducts() {
         const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
         const matchesFeatured = !selectedFeatured || (selectedFeatured === 'yes' && featured);
         
-        // Solo mostrar productos con imagen
-        const hasImage = product.has_image && product.image_path;
-        
-        return matchesSearch && matchesCategory && matchesFeatured && hasImage;
+        // Ya no necesitamos filtrar por imagen: ProductosPublicos solo devuelve productos con IMAGEN=true
+        return matchesSearch && matchesCategory && matchesFeatured;
     });
     
     renderProducts();
@@ -236,7 +228,7 @@ function openProductModal(code) {
     const name = product.DESCRIPCIÓN || 'Sin nombre';
     const category = product.CATEGORÍA || 'SIN CATEGORÍA';
     const price = product.VENTA || 0;
-    const hasImage = product.has_image && product.image_path;
+    const hasImage = product.image_path; // BD garantiza que siempre hay imagen
     const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
     
     modalBody.innerHTML = `
@@ -291,7 +283,6 @@ featuredFilter.addEventListener('change', filterProducts);
 clearFiltersBtn.addEventListener('click', () => {
     searchInput.value = '';
     categoryFilter.value = '';
-    stockFilter.value = '';
     featuredFilter.value = '';
     filterProducts();
 });
@@ -353,14 +344,13 @@ function addToCart(productCode) {
     } else {
         // Si no existe, agregar nuevo
         const price = product.VENTA || 0;
-        const hasImage = product.has_image && product.image_path;
         
         cart.push({
             code: productCode,
             name: productName,
             price: price,
             quantity: 1,
-            imagePath: hasImage ? product.image_path : null
+            imagePath: product.image_path // BD garantiza que siempre hay imagen
         });
         
         showToast(`${productName} agregado al carrito`, 'success');
