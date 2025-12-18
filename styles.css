@@ -1185,10 +1185,6 @@ body {
         display: flex;
     }
 
-    .cart-icon-container {
-        display: none;
-    }
-
     .cart-panel {
         width: 100%;
         right: -100%;

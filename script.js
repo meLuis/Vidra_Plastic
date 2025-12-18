@@ -293,14 +293,40 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 function loadCart() {
     const savedCart = localStorage.getItem('vidraPlasticCart');
     if (savedCart) {
-        cart = JSON.parse(savedCart);
-        updateCartUI();
+        try {
+            const cartData = JSON.parse(savedCart);
+            
+            // Verificar si tiene timestamp (nuevo formato)
+            if (cartData.timestamp) {
+                const daysPassed = (Date.now() - cartData.timestamp) / (1000 * 60 * 60 * 24);
+                
+                if (daysPassed <= 30) {
+                    cart = cartData.items;
+                    updateCartUI();
+                } else {
+                    // Carrito expirado después de 30 días de inactividad
+                    localStorage.removeItem('vidraPlasticCart');
+                    showToast('Tu carrito expiró después de 30 días de inactividad', 'info');
+                }
+            } else {
+                // Formato antiguo (sin timestamp), migrar y mantener
+                cart = Array.isArray(cartData) ? cartData : [];
+                saveCart(); // Guardar con nuevo formato
+                updateCartUI();
+            }
+        } catch (error) {
+            console.error('Error al cargar carrito:', error);
+            localStorage.removeItem('vidraPlasticCart');
+        }
     }
 }
 
-// Guardar carrito en localStorage
+// Guardar carrito en localStorage con timestamp actualizado
 function saveCart() {
-    localStorage.setItem('vidraPlasticCart', JSON.stringify(cart));
+    localStorage.setItem('vidraPlasticCart', JSON.stringify({
+        items: cart,
+        timestamp: Date.now() // Actualiza con cada modificación
+    }));
 }
 
 // Agregar producto al carrito
@@ -541,6 +567,13 @@ function sendWhatsAppOrder() {
     
     // Abrir WhatsApp
     window.open(whatsappURL, '_blank');
+    
+    // Vaciar carrito después de enviar pedido
+    localStorage.removeItem('vidraPlasticCart');
+    cart = [];
+    updateCartUI();
+    closeCart();
+    showToast('✅ Pedido enviado por WhatsApp. Carrito vaciado', 'success');
 }
 
 // Event listeners del carrito
