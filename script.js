@@ -120,10 +120,8 @@ function renderProducts() {
     productsGrid.innerHTML = productsToShow.map(product => {
         const code = product.SKU || '';
         const name = product.DESCRIPCIÓN || 'Sin nombre';
-        const category = product.CATEGORÍA || '';
         const price = product.VENTA;
         const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
-        const hasImage = product.image_path; // Siempre true porque la BD garantiza imagen
         
         // Obtener cantidad en carrito para este producto
         const cartItem = cart.find(item => item.code === code);
@@ -145,23 +143,14 @@ function renderProducts() {
                 ${cartQuantity > 0 ? `<span class="product-quantity-badge">${cartQuantity}</span>` : ''}
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <div class="product-image-container" onclick="openProductModal('${code}')">
-                    ${hasImage 
-                        ? `<img src="${product.image_path}" alt="${name}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                           <div class="product-image-placeholder" style="display:none;">
-                               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                   <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                   <polyline points="21 15 16 10 5 21"></polyline>
-                               </svg>
-                           </div>`
-                        : `<div class="product-image-placeholder">
-                               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                   <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                   <polyline points="21 15 16 10 5 21"></polyline>
-                               </svg>
-                           </div>`
-                    }
+                    <img src="${product.image_path}" alt="${name}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="product-image-placeholder" style="display:none;">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </div>
                 </div>
                 <div class="product-info" onclick="openProductModal('${code}')">
                     <div class="product-code">Código: ${highlightedCode}</div>
@@ -228,29 +217,19 @@ function openProductModal(code) {
     const name = product.DESCRIPCIÓN || 'Sin nombre';
     const category = product.CATEGORÍA || 'SIN CATEGORÍA';
     const price = product.VENTA || 0;
-    const hasImage = product.image_path; // BD garantiza que siempre hay imagen
     const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
     
     modalBody.innerHTML = `
         <div class="modal-product">
             <div class="modal-image-container">
-                ${hasImage 
-                    ? `<img src="${product.image_path}" alt="${name}" class="modal-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                       <div class="product-image-placeholder" style="display:none;">
-                           <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                               <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                               <polyline points="21 15 16 10 5 21"></polyline>
-                           </svg>
-                       </div>`
-                    : `<div class="product-image-placeholder">
-                           <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                               <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                               <polyline points="21 15 16 10 5 21"></polyline>
-                           </svg>
-                       </div>`
-                }
+                <img src="${product.image_path}" alt="${name}" class="modal-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="product-image-placeholder" style="display:none;">
+                    <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </div>
             </div>
             <div class="modal-info">
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
