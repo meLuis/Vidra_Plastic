@@ -1162,11 +1162,11 @@ body {
     .nav {
         gap: 1rem;
         position: fixed;
-        top: 70px;
+        top: 0;
         left: -100%;
         width: 80%;
         max-width: 300px;
-        height: calc(100vh - 70px);
+        height: 100vh;
         background-color: white;
         flex-direction: column;
         align-items: flex-start;
@@ -1174,6 +1174,7 @@ body {
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
         transition: left 0.3s ease;
         z-index: 1001;
+        overflow-y: auto;
     }
 
     .nav.active {
@@ -1182,6 +1183,10 @@ body {
 
     .menu-toggle {
         display: flex;
+    }
+
+    .cart-icon-container {
+        display: none;
     }
 
     .cart-panel {
