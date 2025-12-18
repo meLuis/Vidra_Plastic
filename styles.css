@@ -1155,7 +1155,28 @@ body {
 
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        gap: 0.75rem;
+    }
+
+    /* Tarjetas más compactas en tablet/móvil */
+    .product-image-container {
+        height: 160px;
+    }
+
+    .product-image {
+        padding: 0.75rem;
+    }
+
+    .product-info {
+        padding: 1rem;
+    }
+
+    .product-name {
+        font-size: 0.95rem;
+    }
+
+    .product-price {
+        font-size: 1.1rem;
     }
 
     .modal-product {
@@ -1208,7 +1229,7 @@ body {
 @media (max-width: 480px) {
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
 
     .hero {
@@ -1219,13 +1240,70 @@ body {
         font-size: 1.5rem;
     }
 
+    /* Tarjetas compactas estilo Sodimac */
+    .product-card {
+        border-radius: var(--radius);
+    }
+
+    .product-image-container {
+        height: 120px;
+    }
+
+    .product-image {
+        padding: 0.5rem;
+    }
+
+    .product-info {
+        padding: 0.75rem;
+    }
+
+    .product-code {
+        font-size: 0.65rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        line-height: 1.3;
+    }
+
+    .product-footer {
+        padding-top: 0.5rem;
+    }
+
+    .product-price {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .product-badge {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.5rem;
+        top: 0.5rem;
+        left: 0.5rem;
+    }
+
     .add-to-cart-btn {
-        width: 35px;
-        height: 35px;
+        width: 32px;
+        height: 32px;
+        top: 0.5rem;
+        right: 0.5rem;
     }
 
     .add-to-cart-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .product-quantity-badge {
         width: 18px;
         height: 18px;
+        font-size: 0.6rem;
+        top: 0.35rem;
+        right: 0.35rem;
     }
 }
