@@ -7,18 +7,17 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 ### 🎨 Diseño y UX
 - ✅ Diseño moderno y profesional
 - ✅ Completamente responsive (móvil, tablet, desktop)
-- ✅ Grid de 5 columnas en desktop, 3 en tablet, 2 en móvil
+- ✅ Grid de 6 columnas en desktop (ajusta por breakpoint)
 - ✅ Animaciones suaves y transiciones elegantes
 
 ### 🔍 Sistema de Búsqueda y Filtros
 - ✅ Búsqueda en tiempo real por nombre, código o categoría
-- ✅ Filtros avanzados: categoría, stock, destacados
+- ✅ Filtros: categoría y destacados
 - ✅ Contador de productos filtrados
 
 ### 📦 Paginación Inteligente
-- ✅ Muestra 50 productos inicialmente (10 filas × 5 columnas)
-- ✅ Botón "Ver más" carga 50 productos adicionales
-- ✅ Carga infinita sin recargar página
+- ✅ Muestra 60 productos inicialmente
+- ✅ Carga infinita (scroll) sin recargar página
 
 ### 🛒 Sistema de Carrito Completo
 - ✅ Botón de agregar en cada producto (esquina superior derecha)
@@ -41,7 +40,7 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 - ✅ Compatible con WhatsApp Web y App móvil
 
 ### 🖼️ Gestión de Productos
-- ✅ 194 productos con imágenes .webp optimizadas
+- ✅ Productos con imágenes .webp
 - ✅ Modal detallado para cada producto
 - ✅ Visualización de precios en soles
 - ✅ Sistema de productos destacados
@@ -55,7 +54,7 @@ VidraPlastic/
 ├── styles.css         # Estilos (CSS Grid, Flexbox, Variables)
 ├── script.js          # Lógica del carrito y filtros
 ├── README.md          # Este archivo
-└── Todos/             # Imágenes de productos (194 .webp)
+└── Todos/             # Imágenes de productos (.webp)
 ```
 
 ## 🎯 Cómo Usar
@@ -79,12 +78,13 @@ Abre `index.html` con tu navegador favorito
 - **HTML5** - Estructura semántica
 - **CSS3** - Variables CSS, Grid, Flexbox, Animaciones
 - **JavaScript ES6+** - Vanilla JS, sin dependencias
+- **Supabase (CDN)** - Lectura de productos desde vista pública
 - **LocalStorage API** - Persistencia del carrito
 - **WhatsApp Business API** - Envío de pedidos
 
 ## 📱 Responsive Breakpoints
 
-- **Desktop** (>1200px): 5 columnas
+- **Desktop** (>1200px): 6 columnas
 - **Laptop** (992-1200px): 4 columnas
 - **Tablet** (768-992px): 3 columnas
 - **Móvil** (480-768px): 2 columnas

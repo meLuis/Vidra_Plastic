@@ -82,21 +82,41 @@ async function loadProducts() {
     } catch (error) {
         console.error('Error cargando productos:', error);
         hideSkeletons();
+        loading.style.display = 'block';
         loading.innerHTML = '<p>Error al cargar los productos. Por favor, recarga la página.</p>';
     }
 }
 
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizeSearchText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function normalizePrice(value) {
+    if (value === null || value === undefined) return null;
+    const str = String(value).trim();
+    if (!str || str.toLowerCase() === 'null') return null;
+    const num = Number.parseFloat(str.replace(',', '.'));
+    if (!Number.isFinite(num) || num === 0) return null;
+    return num;
+}
+
 // Formatear precio
 function formatPrice(price) {
-    if (!price || price === null || price === 'null') {
-        return 'Consultar precio';
-    }
-    
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum)) {
-        return 'Consultar precio';
-    }
-    
+    const priceNum = normalizePrice(price);
+    if (priceNum === null) return 'Consultar precio';
     return `S/ ${priceNum.toFixed(2)}`;
 }
 
@@ -116,24 +136,28 @@ function renderProducts() {
     const productsToShow = filteredProducts.slice(0, displayedProductsCount);
     
     const searchTerm = searchInput.value.trim();
+
+    const cartQuantityByCode = new Map(cart.map(item => [String(item.code), item.quantity]));
     
     productsGrid.innerHTML = productsToShow.map(product => {
-        const code = product.SKU || '';
-        const name = product.DESCRIPCIÓN || 'Sin nombre';
+        const code = String(product.SKU || '');
+        const name = String(product.DESCRIPCIÓN || 'Sin nombre');
         const price = product.VENTA;
         const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
         
         // Obtener cantidad en carrito para este producto
-        const cartItem = cart.find(item => item.code === code);
-        const cartQuantity = cartItem ? cartItem.quantity : 0;
+        const cartQuantity = cartQuantityByCode.get(code) || 0;
+
+        const safeCode = escapeHTML(code);
+        const safeName = escapeHTML(name);
         
         // Apply search highlighting
-        const highlightedCode = highlightText(code, searchTerm);
-        const highlightedName = highlightText(name, searchTerm);
+        const highlightedCode = highlightText(safeCode, searchTerm);
+        const highlightedName = highlightText(safeName, searchTerm);
         
         return `
-            <div class="product-card">
-                <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart('${code}')" title="Agregar al carrito">
+            <div class="product-card" data-action="open-modal" data-code="${safeCode}">
+                <button class="add-to-cart-btn" type="button" data-action="add-to-cart" data-code="${safeCode}" title="Agregar al carrito">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="9" cy="21" r="1"></circle>
                         <circle cx="20" cy="21" r="1"></circle>
@@ -142,9 +166,9 @@ function renderProducts() {
                 </button>
                 ${cartQuantity > 0 ? `<span class="product-quantity-badge">${cartQuantity}</span>` : ''}
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
-                <div class="product-image-container" onclick="openProductModal('${code}')">
-                    <img src="${product.image_path}" alt="${name}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="product-image-placeholder" style="display:none;">
+                <div class="product-image-container">
+                    <img src="${product.image_path}" alt="${safeName}" class="product-image">
+                    <div class="product-image-placeholder" hidden>
                         <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                             <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -152,11 +176,11 @@ function renderProducts() {
                         </svg>
                     </div>
                 </div>
-                <div class="product-info" onclick="openProductModal('${code}')">
+                <div class="product-info">
                     <div class="product-code">Código: ${highlightedCode}</div>
                     <h3 class="product-name">${highlightedName}</h3>
                     <div class="product-footer">
-                        <div class="product-price">${price ? formatPrice(price) : 'Consultar'}</div>
+                        <div class="product-price">${formatPrice(price)}</div>
                     </div>
                 </div>
             </div>
@@ -173,7 +197,7 @@ function updateProductCount() {
 
 // Filtrar productos
 function filterProducts() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchTerm = normalizeSearchText(searchInput.value);
     const selectedCategory = categoryFilter.value;
     const selectedFeatured = featuredFilter.value;
     
@@ -181,15 +205,13 @@ function filterProducts() {
     displayedProductsCount = PRODUCTS_PER_PAGE;
     
     filteredProducts = allProducts.filter(product => {
-        // Búsqueda por texto
-        const name = (product.DESCRIPCIÓN || '').toLowerCase();
-        const code = (product.SKU || '').toString().toLowerCase();
-        const category = (product.CATEGORÍA || '').toLowerCase();
-        
-        const matchesSearch = !searchTerm || 
-            name.includes(searchTerm) || 
-            code.includes(searchTerm) ||
-            category.includes(searchTerm);
+        const haystack = product.__search || normalizeSearchText([
+            product.SKU,
+            product.DESCRIPCIÓN,
+            product.CATEGORÍA
+        ].filter(Boolean).join(' '));
+
+        const matchesSearch = !searchTerm || haystack.includes(searchTerm);
         
         // Filtro por categoría
         const matchesCategory = !selectedCategory || product.CATEGORÍA === selectedCategory;
@@ -214,16 +236,20 @@ function openProductModal(code) {
     
     if (!product) return;
     
-    const name = product.DESCRIPCIÓN || 'Sin nombre';
-    const category = product.CATEGORÍA || 'SIN CATEGORÍA';
-    const price = product.VENTA || 0;
+    const name = String(product.DESCRIPCIÓN || 'Sin nombre');
+    const category = String(product.CATEGORÍA || 'SIN CATEGORÍA');
+    const price = product.VENTA;
     const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
+
+    const safeName = escapeHTML(name);
+    const safeCategory = escapeHTML(category);
+    const safeCode = escapeHTML(code);
     
     modalBody.innerHTML = `
         <div class="modal-product">
             <div class="modal-image-container">
-                <img src="${product.image_path}" alt="${name}" class="modal-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="product-image-placeholder" style="display:none;">
+                <img src="${product.image_path}" alt="${safeName}" class="modal-image">
+                <div class="product-image-placeholder" hidden>
                     <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -233,13 +259,13 @@ function openProductModal(code) {
             </div>
             <div class="modal-info">
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
-                <h2>${name}</h2>
-                <div class="product-code">Código: ${code}</div>
+                <h2>${safeName}</h2>
+                <div class="product-code">Código: ${safeCode}</div>
                 <div class="modal-price">${formatPrice(price)}</div>
                 <div class="modal-details">
                     <div class="detail-row">
                         <span class="detail-label">Categoría:</span>
-                        <span class="detail-value">${category}</span>
+                        <span class="detail-value">${safeCategory}</span>
                     </div>
                 </div>
             </div>
@@ -272,6 +298,38 @@ productModal.addEventListener('click', (e) => {
         closeModal();
     }
 });
+
+// Delegación de eventos para productos (evita onclick inline)
+productsGrid.addEventListener('click', (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl || !productsGrid.contains(actionEl)) return;
+
+    const action = actionEl.dataset.action;
+    const code = actionEl.dataset.code || actionEl.closest('.product-card')?.dataset.code;
+    if (!code) return;
+
+    if (action === 'add-to-cart') {
+        e.stopPropagation();
+        addToCart(code);
+        return;
+    }
+
+    if (action === 'open-modal') {
+        openProductModal(code);
+    }
+});
+
+// Fallback de imágenes (error no burbujea, usar captura)
+document.addEventListener('error', (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLImageElement)) return;
+
+    const placeholder = el.nextElementSibling;
+    if (placeholder && placeholder.classList.contains('product-image-placeholder')) {
+        el.style.display = 'none';
+        placeholder.hidden = false;
+    }
+}, true);
 
 // Smooth scroll para navegación
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -338,7 +396,7 @@ function addToCart(productCode) {
     if (!product) return;
     
     // Verificar si el producto ya está en el carrito
-    const existingItem = cart.find(item => item.code === productCode);
+    const existingItem = cart.find(item => String(item.code) === String(productCode));
     
     const productName = product.DESCRIPCIÓN || 'Sin nombre';
     
@@ -348,7 +406,7 @@ function addToCart(productCode) {
         showToast(`${productName} (x${existingItem.quantity})`, 'success');
     } else {
         // Si no existe, agregar nuevo
-        const price = product.VENTA || 0;
+        const price = normalizePrice(product.VENTA);
         
         cart.push({
             code: productCode,
@@ -376,26 +434,29 @@ function showCartNotification() {
 
 // Actualizar cantidad de un producto
 function updateCartItemQuantity(productCode, newQuantity) {
-    const item = cart.find(item => item.code === productCode);
+    const item = cart.find(item => String(item.code) === String(productCode));
     
     if (!item) return;
+
+    const qty = Number.parseInt(newQuantity, 10);
+    if (!Number.isFinite(qty)) return;
     
-    if (newQuantity < 1) {
+    if (qty < 1) {
         removeFromCart(productCode);
         return;
     }
     
-    item.quantity = newQuantity;
+    item.quantity = qty;
     saveCart();
     updateCartUI();
 }
 
 // Eliminar producto del carrito
 function removeFromCart(productCode) {
-    const item = cart.find(item => item.code === productCode);
+    const item = cart.find(item => String(item.code) === String(productCode));
     const productName = item ? item.name : 'Producto';
     
-    cart = cart.filter(item => item.code !== productCode);
+    cart = cart.filter(item => String(item.code) !== String(productCode));
     saveCart();
     updateCartUI();
     
@@ -417,22 +478,12 @@ function clearCart() {
 // Actualizar badges individuales en las tarjetas de productos
 function updateProductBadges() {
     // Recorrer todas las tarjetas de productos visibles
-    const productCards = document.querySelectorAll('.product-card');
+    const productCards = document.querySelectorAll('.product-card[data-code]');
+    const cartQuantityByCode = new Map(cart.map(item => [String(item.code), item.quantity]));
     
     productCards.forEach(card => {
-        // Obtener el código del producto desde el botón de agregar
-        const addBtn = card.querySelector('.add-to-cart-btn');
-        if (!addBtn) return;
-        
-        const onclickAttr = addBtn.getAttribute('onclick');
-        const codeMatch = onclickAttr.match(/addToCart\('(.+?)'\)/);
-        if (!codeMatch) return;
-        
-        const productCode = codeMatch[1];
-        
-        // Buscar si este producto está en el carrito
-        const cartItem = cart.find(item => item.code === productCode);
-        const quantity = cartItem ? cartItem.quantity : 0;
+        const productCode = card.dataset.code;
+        const quantity = cartQuantityByCode.get(String(productCode)) || 0;
         
         // Buscar o crear el badge
         let badge = card.querySelector('.product-quantity-badge');
@@ -484,11 +535,15 @@ function updateCartUI() {
         `;
         cartFooter.style.display = 'none';
     } else {
-        cartBody.innerHTML = cart.map(item => `
+        cartBody.innerHTML = cart.map(item => {
+            const safeName = escapeHTML(item.name);
+            const safeCode = escapeHTML(item.code);
+            const safeImg = item.imagePath ? escapeHTML(item.imagePath) : '';
+            return `
             <div class="cart-item">
                 <div class="cart-item-image">
                     ${item.imagePath 
-                        ? `<img src="${item.imagePath}" alt="${item.name}">`
+                        ? `<img src="${safeImg}" alt="${safeName}">`
                         : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -497,17 +552,17 @@ function updateCartUI() {
                     }
                 </div>
                 <div class="cart-item-info">
-                    <div class="cart-item-name">${item.name}</div>
-                    <div class="cart-item-code">Código: ${item.code}</div>
+                    <div class="cart-item-name">${safeName}</div>
+                    <div class="cart-item-code">Código: ${safeCode}</div>
                     <div class="cart-item-price">${formatPrice(item.price)}</div>
                     <div class="cart-item-controls">
                         <div class="quantity-control">
-                            <button class="quantity-btn" onclick="updateCartItemQuantity('${item.code}', ${item.quantity - 1})">−</button>
+                            <button class="quantity-btn" type="button" data-action="decrease" data-code="${safeCode}">−</button>
                             <input type="number" class="quantity-input" value="${item.quantity}" min="1" 
-                                onchange="updateCartItemQuantity('${item.code}', parseInt(this.value) || 1)">
-                            <button class="quantity-btn" onclick="updateCartItemQuantity('${item.code}', ${item.quantity + 1})">+</button>
+                                data-action="quantity-input" data-code="${safeCode}">
+                            <button class="quantity-btn" type="button" data-action="increase" data-code="${safeCode}">+</button>
                         </div>
-                        <button class="remove-item-btn" onclick="removeFromCart('${item.code}')" title="Eliminar">
+                        <button class="remove-item-btn" type="button" data-action="remove" data-code="${safeCode}" title="Eliminar">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -516,14 +571,52 @@ function updateCartUI() {
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
         
         // Calcular y mostrar total
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        cartTotal.textContent = `S/ ${total.toFixed(2)}`;
+        const totals = cart.map(item => {
+            const unit = normalizePrice(item.price);
+            return unit === null ? null : unit * item.quantity;
+        });
+        const hasUnknown = totals.some(v => v === null);
+        const totalKnown = totals.reduce((sum, v) => sum + (v || 0), 0);
+        cartTotal.textContent = hasUnknown ? 'Consultar' : `S/ ${totalKnown.toFixed(2)}`;
         cartFooter.style.display = 'block';
     }
 }
+
+// Delegación de eventos del carrito (evita onclick inline)
+cartBody.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn || !cartBody.contains(btn)) return;
+
+    const action = btn.dataset.action;
+    const code = btn.dataset.code;
+    if (!code) return;
+
+    const item = cart.find(i => String(i.code) === String(code));
+    if (!item) return;
+
+    if (action === 'decrease') {
+        updateCartItemQuantity(code, item.quantity - 1);
+    } else if (action === 'increase') {
+        updateCartItemQuantity(code, item.quantity + 1);
+    } else if (action === 'remove') {
+        removeFromCart(code);
+    }
+});
+
+cartBody.addEventListener('change', (e) => {
+    const input = e.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (!input.classList.contains('quantity-input')) return;
+
+    const code = input.dataset.code;
+    if (!code) return;
+
+    updateCartItemQuantity(code, Number.parseInt(input.value, 10) || 1);
+});
 
 // Abrir panel del carrito
 function openCart() {
@@ -550,15 +643,21 @@ function sendWhatsAppOrder() {
     let message = '¡Hola! Quiero hacer un pedido:\n\n';
     
     cart.forEach((item, index) => {
-        const subtotal = item.price * item.quantity;
+        const unit = normalizePrice(item.price);
+        const subtotal = unit === null ? null : unit * item.quantity;
         message += `${index + 1}. ${item.name}\n`;
         message += `   Código: ${item.code}\n`;
         message += `   Cantidad: ${item.quantity}x - ${formatPrice(item.price)}\n`;
-        message += `   Subtotal: ${formatPrice(subtotal)}\n\n`;
+        message += `   Subtotal: ${subtotal === null ? 'Consultar precio' : formatPrice(subtotal)}\n\n`;
     });
     
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    message += `*Total: S/ ${total.toFixed(2)}*`;
+    const totals = cart.map(item => {
+        const unit = normalizePrice(item.price);
+        return unit === null ? null : unit * item.quantity;
+    });
+    const hasUnknown = totals.some(v => v === null);
+    const totalKnown = totals.reduce((sum, v) => sum + (v || 0), 0);
+    message += hasUnknown ? `*Total: Consultar*` : `*Total: S/ ${totalKnown.toFixed(2)}*`;
     
     // Codificar mensaje para URL
     const encodedMessage = encodeURIComponent(message);
@@ -573,7 +672,7 @@ function sendWhatsAppOrder() {
     cart = [];
     updateCartUI();
     closeCart();
-    showToast('✅ Pedido enviado por WhatsApp. Carrito vaciado', 'success');
+    showToast('Pedido enviado por WhatsApp. Carrito vaciado', 'success');
 }
 
 // Event listeners del carrito
@@ -609,7 +708,7 @@ function showToast(message, type = 'success', duration = 2250) {
     }
     
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `toast ${type}`;
     
     const icon = {
         success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
@@ -617,10 +716,16 @@ function showToast(message, type = 'success', duration = 2250) {
         info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
     };
     
-    toast.innerHTML = `
-        <span class="toast-icon">${icon[type]}</span>
-        <span class="toast-message">${message}</span>
-    `;
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'toast-icon';
+    iconSpan.innerHTML = icon[type] || '';
+
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'toast-message';
+    messageSpan.textContent = message;
+
+    toast.appendChild(iconSpan);
+    toast.appendChild(messageSpan);
     
     toastContainer.appendChild(toast);
     activeToast = toast;
@@ -667,10 +772,12 @@ document.addEventListener('click', (e) => {
 function renderSkeletons(count = 60) {
     productsGrid.innerHTML = Array(count).fill(0).map(() => `
         <div class="skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton-image"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-line title"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
         </div>
     `).join('');
 }
@@ -681,13 +788,13 @@ function hideSkeletons() {
 }
 
 // ========== SEARCH DEBOUNCE WITH HIGHLIGHT ==========
-let searchTimeout;
 const DEBOUNCE_DELAY = 300;
 
 function debounce(func, delay) {
-    return function(...args) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => func.apply(this, args), delay);
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
     };
 }
 
@@ -720,7 +827,6 @@ function handleInfiniteScroll() {
         const loadingIndicator = document.createElement('div');
         loadingIndicator.className = 'loading-more';
         loadingIndicator.textContent = 'Cargando más productos...';
-        loadingIndicator.style.cssText = 'text-align: center; padding: 2rem; color: var(--primary-color); font-weight: 500;';
         productsGrid.insertAdjacentElement('afterend', loadingIndicator);
         
         setTimeout(() => {
