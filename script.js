@@ -112,6 +112,12 @@ function normalizeSearchText(value) {
         .trim();
 }
 
+function getSearchTokens(value) {
+    return normalizeSearchText(value)
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
 function normalizePrice(value) {
     if (value === null || value === undefined) return null;
     const str = String(value).trim();
@@ -143,7 +149,7 @@ function renderProducts() {
     // Mostrar solo los primeros displayedProductsCount productos
     const productsToShow = filteredProducts.slice(0, displayedProductsCount);
     
-    const searchTerm = searchInput.value.trim();
+    const searchTerm = searchInput.value;
 
     const cartQuantityByCode = new Map(cart.map(item => [String(item.code), item.quantity]));
     
@@ -205,7 +211,7 @@ function updateProductCount() {
 
 // Filtrar productos
 function filterProducts() {
-    const searchTerm = normalizeSearchText(searchInput.value);
+    const searchTokens = getSearchTokens(searchInput.value);
     const selectedCategory = categoryFilter.value;
     const selectedFeatured = featuredFilter.value;
     
@@ -219,7 +225,8 @@ function filterProducts() {
             product.CATEGORÍA
         ].filter(Boolean).join(' '));
 
-        const matchesSearch = !searchTerm || haystack.includes(searchTerm);
+        // Búsqueda por palabras (orden indiferente): todas las palabras deben existir en el texto
+        const matchesSearch = searchTokens.length === 0 || searchTokens.every(token => haystack.includes(token));
         
         // Filtro por categoría
         const matchesCategory = !selectedCategory || product.CATEGORÍA === selectedCategory;
@@ -814,11 +821,18 @@ function debounce(func, delay) {
 }
 
 function highlightText(text, searchTerm) {
-    if (!searchTerm) return text;
-    
-    // Escape special regex characters
-    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+    const tokens = getSearchTokens(searchTerm);
+    if (tokens.length === 0) return text;
+
+    // Evitar regex gigante si alguien pega un texto enorme
+    const limitedTokens = tokens.slice(0, 10);
+    const escapedTokens = limitedTokens
+        .map(token => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .filter(Boolean);
+
+    if (escapedTokens.length === 0) return text;
+
+    const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
     return text.replace(regex, '<mark class="search-highlight">$1</mark>');
 }
 
