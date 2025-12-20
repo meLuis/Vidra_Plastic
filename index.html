@@ -20,7 +20,7 @@
                     <h1 class="logo">VidraPlastic</h1>
                     <p class="tagline">Envases a tu medida</p>
                 </div>
-                <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir/cerrar menú" aria-controls="mainNav" aria-expanded="false">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -51,7 +51,7 @@
                 <p class="hero-subtitle">Soluciones de empaque para todos los sectores</p>
                 <div class="search-bar">
                     <input type="text" id="searchInput" placeholder="Buscar productos..." class="search-input">
-                    <button class="search-btn">
+                    <button class="search-btn" type="button" aria-label="Buscar">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="11" cy="11" r="8"></circle>
                             <path d="m21 21-4.35-4.35"></path>
@@ -110,9 +110,9 @@
     </section>
 
     <!-- Product Modal -->
-    <div class="modal" id="productModal">
+    <div class="modal" id="productModal" role="dialog" aria-modal="true" aria-hidden="true">
         <div class="modal-content">
-            <span class="modal-close">&times;</span>
+            <button class="modal-close" type="button" aria-label="Cerrar">&times;</button>
             <div class="modal-body" id="modalBody">
                 <!-- Contenido del producto se cargará aquí -->
             </div>
@@ -121,7 +121,7 @@
 
     <!-- Cart Panel -->
     <div class="cart-overlay" id="cartOverlay"></div>
-    <div class="cart-panel" id="cartPanel">
+    <div class="cart-panel" id="cartPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Carrito de compras">
         <div class="cart-header">
             <h2>Carrito de Compras</h2>
             <button class="cart-close" id="cartClose">&times;</button>
@@ -166,7 +166,7 @@
                 <div class="footer-section">
                     <h4>Contacto</h4>
                     <p>Email: vidraplastic@gmail.com</p>
-                    <p>Teléfono: +51 966412465</p>
+                    <p>WhatsApp: +51 989 394 769</p>
                 </div>
                 <div class="footer-section">
                     <h4>Enlaces</h4>

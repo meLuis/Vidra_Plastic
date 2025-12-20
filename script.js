@@ -49,10 +49,18 @@ async function loadProducts() {
         }
         
         // ProductosPublicos solo devuelve productos con IMAGEN=true, así que no necesitamos validar
-        allProducts = (data || []).map(product => ({
-            ...product,
-            image_path: `Todos/${product.SKU}.webp`
-        }));
+        // También precomputamos __search para que el filtro sea más rápido.
+        allProducts = (data || []).map(product => {
+            const sku = String(product.SKU || '');
+            const description = String(product.DESCRIPCIÓN || '');
+            const category = String(product.CATEGORÍA || '');
+
+            return {
+                ...product,
+                image_path: `Todos/${sku}.webp`,
+                __search: normalizeSearchText(`${sku} ${description} ${category}`)
+            };
+        });
         
         // Extraer categorías únicas
         allProducts.forEach(product => {
@@ -167,7 +175,7 @@ function renderProducts() {
                 ${cartQuantity > 0 ? `<span class="product-quantity-badge">${cartQuantity}</span>` : ''}
                 ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <div class="product-image-container">
-                    <img src="${product.image_path}" alt="${safeName}" class="product-image">
+                    <img src="${product.image_path}" alt="${safeName}" class="product-image" loading="lazy" decoding="async">
                     <div class="product-image-placeholder" hidden>
                         <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -248,7 +256,7 @@ function openProductModal(code) {
     modalBody.innerHTML = `
         <div class="modal-product">
             <div class="modal-image-container">
-                <img src="${product.image_path}" alt="${safeName}" class="modal-image">
+                <img src="${product.image_path}" alt="${safeName}" class="modal-image" loading="lazy" decoding="async">
                 <div class="product-image-placeholder" hidden>
                     <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -273,12 +281,14 @@ function openProductModal(code) {
     `;
     
     productModal.classList.add('show');
+    productModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 }
 
 // Cerrar modal
 function closeModal() {
     productModal.classList.remove('show');
+    productModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
 }
 
@@ -543,7 +553,7 @@ function updateCartUI() {
             <div class="cart-item">
                 <div class="cart-item-image">
                     ${item.imagePath 
-                        ? `<img src="${safeImg}" alt="${safeName}">`
+                        ? `<img src="${safeImg}" alt="${safeName}" loading="lazy" decoding="async">`
                         : `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -622,6 +632,7 @@ cartBody.addEventListener('change', (e) => {
 function openCart() {
     cartPanel.classList.add('open');
     cartOverlay.classList.add('show');
+    cartPanel.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 }
 
@@ -629,6 +640,7 @@ function openCart() {
 function closeCart() {
     cartPanel.classList.remove('open');
     cartOverlay.classList.remove('show');
+    cartPanel.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
 }
 
@@ -747,6 +759,7 @@ const mainNav = document.getElementById('mainNav');
 menuToggle.addEventListener('click', () => {
     mainNav.classList.toggle('active');
     menuToggle.classList.toggle('active');
+    menuToggle.setAttribute('aria-expanded', mainNav.classList.contains('active') ? 'true' : 'false');
     document.body.style.overflow = mainNav.classList.contains('active') ? 'hidden' : '';
 });
 
@@ -755,6 +768,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', () => {
         mainNav.classList.remove('active');
         menuToggle.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
     });
 });
@@ -764,6 +778,7 @@ document.addEventListener('click', (e) => {
     if (!mainNav.contains(e.target) && !menuToggle.contains(e.target) && mainNav.classList.contains('active')) {
         mainNav.classList.remove('active');
         menuToggle.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
     }
 });

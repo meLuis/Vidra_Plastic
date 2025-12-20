@@ -30,7 +30,7 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 - ✅ Persistencia con localStorage (no se pierde al recargar)
 
 ### 💬 Integración WhatsApp
-- ✅ Envío de pedido formateado a +51 989394769
+- ✅ Envío de pedido formateado a +51 989 394 769
 - ✅ Mensaje detallado con:
   - Lista numerada de productos
   - Códigos internos
@@ -120,5 +120,5 @@ Abre `index.html` con tu navegador favorito
 
 **VidraPlastic** - Envases a tu medida 🇵🇪
 
-**Contacto:** +51 989 394 769
+**Contacto (WhatsApp):** +51 989 394 769
 
