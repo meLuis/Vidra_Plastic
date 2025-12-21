@@ -12,7 +12,17 @@
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', 'G-WX74BV8SZM');
+        
+        // Detectar si es desarrollo local (testing)
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' ||
+                            window.location.hostname === '0.0.0.0';
+        
+        gtag('config', 'G-WX74BV8SZM', {
+            'debug_mode': isLocalhost,  // Marcar como debug si es localhost
+            'allow_google_signals': true,
+            'allow_ad_personalization_signals': true
+        });
     </script>
     
     <link rel="stylesheet" href="styles.css">
