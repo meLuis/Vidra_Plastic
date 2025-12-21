@@ -293,15 +293,15 @@ const Analytics = (function() {
         
         // Enviar eventos en batch cada X segundos
         setInterval(flushEvents, CONFIG.BATCH_INTERVAL);
+
+        isInitialized = true;
+        log('Analytics initialized');
         
-        // Track page view inicial
+        // Track page view inicial (DESPUÉS de isInitialized = true)
         track('page_view', {
             url: window.location.href,
             title: document.title
         });
-
-        isInitialized = true;
-        log('Analytics initialized');
     }
 
     // ========== API PÚBLICA ==========
