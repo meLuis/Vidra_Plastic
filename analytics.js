@@ -357,10 +357,6 @@ const Analytics = (function() {
         trackCategoryFilter: function(category) {
             track('filter_category', { category: category });
         },
-        
-        trackFeaturedFilter: function(value) {
-            track('filter_featured', { value: value });
-        },
 
         // Para debug
         getSessionId: function() { return sessionId; },

@@ -12,7 +12,7 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 
 ### 🔍 Sistema de Búsqueda y Filtros
 - ✅ Búsqueda en tiempo real por nombre, código o categoría
-- ✅ Filtros: categoría y destacados
+- ✅ Menú lateral con 46 categorías
 - ✅ Contador de productos filtrados
 
 ### 📦 Paginación Inteligente
@@ -43,8 +43,14 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 - ✅ Productos con imágenes .webp
 - ✅ Modal detallado para cada producto
 - ✅ Visualización de precios en soles
-- ✅ Sistema de productos destacados
 - ✅ Placeholder SVG para productos sin imagen
+
+### 📊 Analytics
+- ✅ Google Analytics 4 integrado
+- ✅ Sistema propio con Supabase (sesiones, eventos)
+- ✅ Tracking de búsquedas, categorías, productos vistos
+- ✅ Tracking de carrito y checkout
+- ✅ Debug mode automático en localhost
 
 ## 📦 Estructura del Proyecto
 
@@ -52,7 +58,9 @@ Tienda en línea moderna para VidraPlastic, empresa peruana especializada en env
 VidraPlastic/
 ├── index.html         # Página principal
 ├── styles.css         # Estilos (CSS Grid, Flexbox, Variables)
-├── script.js          # Lógica del carrito y filtros
+├── script.js          # Lógica del carrito y UI
+├── analytics.js       # Sistema de analytics propio
+├── supabase-config.js # Configuración de Supabase
 ├── README.md          # Este archivo
 └── Todos/             # Imágenes de productos (.webp)
 ```

@@ -5,19 +5,24 @@ let categories = new Set();
 let cart = [];
 let displayedProductsCount = 60; // Mostrar 60 productos inicialmente (10 filas x 6 cols)
 const PRODUCTS_PER_PAGE = 60;
+let selectedCategory = ''; // Categoría actualmente seleccionada
 
 // Elementos del DOM
 const productsGrid = document.getElementById('productsGrid');
 const loading = document.getElementById('loading');
 const noResults = document.getElementById('noResults');
 const searchInput = document.getElementById('searchInput');
-const categoryFilter = document.getElementById('categoryFilter');
-const featuredFilter = document.getElementById('featuredFilter');
-const clearFiltersBtn = document.getElementById('clearFilters');
 const productCount = document.getElementById('productCount');
 const productModal = document.getElementById('productModal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.querySelector('.modal-close');
+
+// Menú de categorías
+const menuToggle = document.getElementById('menuToggle');
+const categoryMenu = document.getElementById('categoryMenu');
+const categoryMenuOverlay = document.getElementById('categoryMenuOverlay');
+const categoryMenuClose = document.getElementById('categoryMenuClose');
+const categoryMenuBody = document.getElementById('categoryMenuBody');
 
 // Cart elements
 const cartIcon = document.getElementById('cartIcon');
@@ -62,22 +67,18 @@ async function loadProducts() {
             };
         });
         
-        // Extraer categorías únicas
+        // Extraer categorías únicas con conteo
+        const categoryCount = {};
         allProducts.forEach(product => {
             const category = product.CATEGORÍA;
             if (category && category !== 'SIN CATEGORÍA' && category !== '-') {
                 categories.add(category);
+                categoryCount[category] = (categoryCount[category] || 0) + 1;
             }
         });
         
-        // Ordenar categorías y agregar al select
-        const sortedCategories = Array.from(categories).sort();
-        sortedCategories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category;
-            option.textContent = category;
-            categoryFilter.appendChild(option);
-        });
+        // Renderizar menú de categorías
+        renderCategoryMenu(categoryCount);
         
         filteredProducts = [...allProducts];
         
@@ -157,7 +158,6 @@ function renderProducts() {
         const code = String(product.SKU || '');
         const name = String(product.DESCRIPCIÓN || 'Sin nombre');
         const price = product.VENTA;
-        const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
         
         // Obtener cantidad en carrito para este producto
         const cartQuantity = cartQuantityByCode.get(code) || 0;
@@ -179,7 +179,6 @@ function renderProducts() {
                     </svg>
                 </button>
                 ${cartQuantity > 0 ? `<span class="product-quantity-badge">${cartQuantity}</span>` : ''}
-                ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <div class="product-image-container">
                     <img src="${product.image_path}" alt="${safeName}" class="product-image" loading="lazy" decoding="async">
                     <div class="product-image-placeholder" hidden>
@@ -212,8 +211,6 @@ function updateProductCount() {
 // Filtrar productos
 function filterProducts() {
     const searchTokens = getSearchTokens(searchInput.value);
-    const selectedCategory = categoryFilter.value;
-    const selectedFeatured = featuredFilter.value;
     
     // Reset al filtrar
     displayedProductsCount = PRODUCTS_PER_PAGE;
@@ -239,15 +236,10 @@ function filterProducts() {
         // Búsqueda por palabras (orden indiferente): todas las palabras deben existir en el texto
         const matchesSearch = searchTokens.length === 0 || searchTokens.every(token => haystack.includes(token));
         
-        // Filtro por categoría
+        // Filtro por categoría (desde menú lateral)
         const matchesCategory = !selectedCategory || product.CATEGORÍA === selectedCategory;
         
-        // Filtro por destacados
-        const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
-        const matchesFeatured = !selectedFeatured || (selectedFeatured === 'yes' && featured);
-        
-        // Ya no necesitamos filtrar por imagen: ProductosPublicos solo devuelve productos con IMAGEN=true
-        return matchesSearch && matchesCategory && matchesFeatured;
+        return matchesSearch && matchesCategory;
     });
     
     renderProducts();
@@ -263,9 +255,8 @@ function openProductModal(code) {
     if (!product) return;
     
     const name = String(product.DESCRIPCIÓN || 'Sin nombre');
-    const category = String(product.CATEGORÍA || 'SIN CATEGORÍA');
+    const category = String(product.CATEGORÍA || 'Sin categoría');
     const price = product.VENTA;
-    const featured = product.DESTACADO === 'SI' || product.DESTACADO === 'SÍ';
 
     const safeName = escapeHTML(name);
     const safeCategory = escapeHTML(category);
@@ -284,7 +275,6 @@ function openProductModal(code) {
                 </div>
             </div>
             <div class="modal-info">
-                ${featured ? '<span class="product-badge">Destacado</span>' : ''}
                 <h2>${safeName}</h2>
                 <div class="product-code">Código: ${safeCode}</div>
                 <div class="modal-price">${formatPrice(price)}</div>
@@ -320,24 +310,80 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// Event listeners (search has debounce, added later)
-categoryFilter.addEventListener('change', () => {
-    filterProducts();
-    if (typeof Analytics !== 'undefined' && categoryFilter.value) {
-        Analytics.trackCategoryFilter(categoryFilter.value);
-    }
-});
-featuredFilter.addEventListener('change', () => {
-    filterProducts();
-    if (typeof Analytics !== 'undefined' && featuredFilter.value) {
-        Analytics.trackFeaturedFilter(featuredFilter.value);
-    }
-});
-clearFiltersBtn.addEventListener('click', () => {
+// ========== MENÚ DE CATEGORÍAS ==========
+
+// Renderizar menú de categorías
+function renderCategoryMenu(categoryCount) {
+    const sortedCategories = Array.from(categories).sort();
+    const totalProducts = allProducts.length;
+    
+    let html = `
+        <div class="category-item all-products" data-category="">
+            <span class="category-item-name">Ver todos los productos</span>
+            <span class="category-item-count">${totalProducts}</span>
+        </div>
+    `;
+    
+    html += sortedCategories.map(category => `
+        <div class="category-item" data-category="${escapeHTML(category)}">
+            <span class="category-item-name">${escapeHTML(category)}</span>
+            <span class="category-item-count">${categoryCount[category] || 0}</span>
+        </div>
+    `).join('');
+    
+    categoryMenuBody.innerHTML = html;
+}
+
+// Abrir menú de categorías
+function openCategoryMenu() {
+    categoryMenu.classList.add('open');
+    categoryMenuOverlay.classList.add('show');
+    categoryMenu.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
+// Cerrar menú de categorías
+function closeCategoryMenu() {
+    categoryMenu.classList.remove('open');
+    categoryMenuOverlay.classList.remove('show');
+    categoryMenu.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+// Seleccionar categoría
+function selectCategory(category) {
+    selectedCategory = category;
+    
+    // Limpiar búsqueda al seleccionar categoría
     searchInput.value = '';
-    categoryFilter.value = '';
-    featuredFilter.value = '';
+    
+    closeCategoryMenu();
     filterProducts();
+    
+    // Scroll al inicio de productos
+    const productsSection = document.getElementById('productos');
+    if (productsSection) {
+        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Analytics
+    if (typeof Analytics !== 'undefined' && category) {
+        Analytics.trackCategoryFilter(category);
+    }
+}
+
+// Event listeners del menú de categorías
+menuToggle.addEventListener('click', openCategoryMenu);
+categoryMenuClose.addEventListener('click', closeCategoryMenu);
+categoryMenuOverlay.addEventListener('click', closeCategoryMenu);
+
+// Delegación de eventos para items de categoría
+categoryMenuBody.addEventListener('click', (e) => {
+    const item = e.target.closest('.category-item');
+    if (item) {
+        const category = item.dataset.category;
+        selectCategory(category);
+    }
 });
 
 modalClose.addEventListener('click', closeModal);
@@ -757,13 +803,15 @@ cartOverlay.addEventListener('click', closeCart);
 sendWhatsAppBtn.addEventListener('click', sendWhatsAppOrder);
 clearCartBtn.addEventListener('click', clearCart);
 
-// Global ESC key handler for modal and cart
+// Global ESC key handler for modal, cart and category menu
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (productModal.classList.contains('show')) {
             closeModal();
         } else if (cartPanel.classList.contains('open')) {
             closeCart();
+        } else if (categoryMenu.classList.contains('open')) {
+            closeCategoryMenu();
         }
     }
 });
@@ -815,36 +863,8 @@ function showToast(message, type = 'success', duration = 2250) {
     }, duration);
 }
 
-// ========== HAMBURGER MENU ==========
-const menuToggle = document.getElementById('menuToggle');
-const mainNav = document.getElementById('mainNav');
-
-menuToggle.addEventListener('click', () => {
-    mainNav.classList.toggle('active');
-    menuToggle.classList.toggle('active');
-    menuToggle.setAttribute('aria-expanded', mainNav.classList.contains('active') ? 'true' : 'false');
-    document.body.style.overflow = mainNav.classList.contains('active') ? 'hidden' : '';
-});
-
-// Close menu when clicking nav links
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-        mainNav.classList.remove('active');
-        menuToggle.classList.remove('active');
-        menuToggle.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-    });
-});
-
-// Close menu when clicking outside
-document.addEventListener('click', (e) => {
-    if (!mainNav.contains(e.target) && !menuToggle.contains(e.target) && mainNav.classList.contains('active')) {
-        mainNav.classList.remove('active');
-        menuToggle.classList.remove('active');
-        menuToggle.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-    }
-});
+// ========== HAMBURGER MENU (ahora es menú de categorías) ==========
+// El menú de categorías ya está manejado arriba en "MENÚ DE CATEGORÍAS"
 
 // ========== SKELETON LOADING ==========
 function renderSkeletons(count = 60) {
