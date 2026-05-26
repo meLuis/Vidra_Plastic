@@ -782,7 +782,7 @@ function sendWhatsAppOrder() {
     
     // Codificar mensaje para URL
     const encodedMessage = encodeURIComponent(message);
-    const whatsappNumber = '51989394769';
+    const whatsappNumber = '966412465';
     const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
     
     // Abrir WhatsApp
